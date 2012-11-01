@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+      Copyright March 1,2007 Prayank Swaroop (prayank.swaroop@adobe.com)
+      
+      Licensed under the Apache License, Version 2.0 (the "License");
+      you may not use this file except in compliance with the License. 
+      You may obtain a copy of the License at 
+      
+      http://www.apache.org/licenses/LICENSE-2.0 
+      
+      Unless required by applicable law or agreed to in writing, software 
+      distributed under the License is distributed on an "AS IS" BASIS, 
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and 
+      limitations under the License.
+
+-->
+<mx:Label xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:utils="mx.*"
+	creationComplete="init()">
+	<mx:Script>
+		<![CDATA[
+    
+    // Some constants
+	public static const millisecondsPerSecond:int = 1000;
+	public static const millisecondsPerMinute:int = 1000 * 60;
+	public static const millisecondsPerHour:int = 1000 * 60 * 60;
+	public static const millisecondsPerDay:int = 1000 * 60 * 60 * 24;
+    
+    /**
+     * The Timer that acts like a heartbeat for the application.
+     */
+    private var ticker:Timer;
+    
+    /**
+     * The mode to display (CLOCK, TIMER, COUNTDOWN)
+     */
+    private var mode:String;
+
+    public function setMode(newMode:String):void 
+    {        
+    	if(newMode == "CLOCK") {
+    	    mode = "CLOCK";
+        } else if (newMode == "COUNTDOWN") {
+    	    mode = "COUNTDOWN";
+        } else if (newMode == "TIMER") {
+    	    mode = "TIMER";
+    	} else {
+    	    mode = "";
+    	}
+
+    }
+    
+    /**
+     * The time when the timer should reach 0 and turn Red
+     */
+    private var timerEnd:Date;
+    
+    public function setEndTime(end:Date):void 
+    {
+        // Init timer
+        timerEnd = end;
+    }
+    
+    /**
+     * The time when the timer should turn yellow
+     */
+    private var timerWarning:Number;
+        
+    public function setWarning(warning:Number):void 
+    {
+        // Init warning time
+        timerWarning = warning;
+    }
+    
+    public function setEndDelay(delay:Number):void 
+    {
+        // Init timer
+        timerEnd = new Date((new Date()).getTime() + delay);
+    }
+    
+    private function init():void
+    {
+        // creates a Timer that fires an event once per second
+        ticker = new Timer(1000); 
+    
+        // designates the onTick() method to handle Timer events
+        ticker.addEventListener(TimerEvent.TIMER, onTick);
+        
+        // starts the clock ticking
+        ticker.start();
+    }
+            
+    public function onTick(evt:TimerEvent):void 
+    {
+    	if(mode == "CLOCK") {
+    	    // Display a clock
+    		this.htmlText = getTime();
+        } else if (mode == "COUNTDOWN") {
+        	// Gets the time left
+    		this.htmlText = getTimeLeft();
+    	}
+    }
+       
+    // Returns the current time in a string with the format 3:05 PM
+    protected function getTime():String 
+    {
+    	var result:String;
+    	var current:Date = new Date();
+    	
+    	var hours:Number = current.getHours();    
+    	
+    	// Determine if AM/PM
+    	var ampm:String = "AM";
+    	if (hours >= 12) {
+    	   ampm = "PM";
+    	   // Normalize to 0-11
+    	   hours -= 12;
+    	}
+    	
+    	// Correct normalization to 0 back to 12
+    	if (hours == 0) {
+    	   hours = 12;
+    	}
+    	
+    	result = hours.toString() + ":" 
+    	
+    	var mins:Number = current.getMinutes();
+    	if(mins < 10) {
+    	   result += "0";
+    	}
+    	result += mins.toString();
+    	
+    	result += " " + ampm;
+    	
+    	return result;
+    }
+   
+    // Deley between timer updates (in millisec)
+    private var timerRes:Number = 1 * millisecondsPerSecond;
+    public function setTimerRes(incr:Number):void 
+    {
+        timerRes = incr;
+    }
+    
+    // Returns the time remaining (with 10/15 sec increments)
+    protected function getTimeLeft():String 
+    {
+    	// Get the time left before end
+    	var timeLeft:Number = timerEnd.getTime() - (new Date()).getTime();
+    	
+    	// Normalize so it only chages every timerRes millisec
+        timeLeft = Math.round(timeLeft / timerRes) * timerRes;
+    	
+    	// Add color to the message
+	var result:String = new String();
+	var color:String = "#000000";
+
+	// Color reference
+	// black  "#000000"
+	// blue   "#0000FF"
+	// green  "#00FF00"
+	// yellow "#FFFF00"
+	// red    "#FF0000"
+
+
+	// Change the color to yellow if < 1 min
+	if(timeLeft <= timerWarning) {
+	   color = "#FFFF00";
+	}
+
+	// Change the color to red if time up
+        if(timeLeft <= 0) {
+           // Count up as time over
+	   timeLeft = 0 - timeLeft;
+	   color = "#FF0000";
+	}
+
+	result = "<FONT COLOR=\"" + color + "\"> ";
+	
+        var secs:Number = timeLeft/1000; 
+        
+        var months:int = secs/(30 * 24 * 3600);
+        secs = secs % (30 * 24 * 3600);
+        if(months > 0) result += months + "months ";
+        
+        var weeks:int = secs/(7 * 24 * 3600);
+        secs = secs % (7 * 24 * 3600);
+        if(weeks > 0) result += weeks + "weeks ";
+        
+        var days:int = secs/(24 * 3600);
+        secs = secs % (24 * 3600);
+        if(days > 0) result += days + "days ";
+        
+        var hours:int = secs/3600;
+        secs = secs % 3600;
+
+        if(hours < 10) result += " ";
+        if(hours > 0) result += hours + ":";
+        
+        var minutes:int = secs/60;
+        secs = secs % 60;
+        if(minutes < 10) result += " ";
+        if(minutes >= 0) result += minutes + ":";
+                            
+        if(Math.round(secs) < 10) result += "0";
+        if(Math.round(secs) >= 0) result += Math.round(secs) + "";
+        result += "</FONT>";
+        return result;
+    }
+    
+    
+		]]>
+	</mx:Script>
+</mx:Label>
