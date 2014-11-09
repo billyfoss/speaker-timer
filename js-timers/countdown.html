@@ -22,54 +22,48 @@ body
 background-color:#b0c4de;
 }
 
-div.timer
+html
 {
 text-align:center;
-font-size:200px;
 font-weight:bold;
 font-family:Arial,Helvetica,sans-serif;
 color:green;
 }
 
-p.green
+p.header
 {
-text-align:center;
+font-size:20px;
+}
+
+p.normal
+{
 font-size:200px;
-font-weight:bold;
-font-family:Arial,Helvetica,sans-serif;
 color:green;
-}
-
-a.setMin:hover
-{
-color:blue;
-}
-
-a.setMin
-{
-font-size:50px;
-font-weight:bold;
-font-family:Arial,Helvetica,sans-serif;
-color:#b0c4de;
-//color:red;
 }
 
 p.warn
 {
-text-align:center;
 font-size:200px;
-font-weight:bold;
-font-family:Arial,Helvetica,sans-serif;
 color:yellow;
 }
 
 p.stop
 {
-text-align:center;
 font-size:200px;
-font-weight:bold;
-font-family:Arial,Helvetica,sans-serif;
 color:red;
+}
+
+
+a.hiddenButton:hover
+{
+color:blue;
+}
+
+a.hiddenButton
+{
+font-size:50px;
+color:#b0c4de;
+//color:red;
 }
 
 
@@ -80,10 +74,7 @@ color:blue;
 
 p.debug
 {
-text-align:center;
 font-size:20px;
-font-weight:bold;
-font-family:Arial,Helvetica,sans-serif;
 color:#b0c4de;
 //color:red;
 }
@@ -138,32 +129,41 @@ function reset() {
 // Function to set the time and start the countdown
 function setTimerMin(min) {
   timerMin = min;
-  reset();
+  endTime = "";
+  // reset to normal
+  document.getElementById("display").className = "normal";
+  startCountdown();
+  updateCountdown();
 }
 
 
 /* Function that updates the timer.  
    This will get called every pollInterval 
    */
-var endTime;
+var endTime = "";
 var remainingTime = timerStop;
 function updateCountdown()
 {
-
+  var curr = new Date();
+  
   if (endTime == "") {
     // Initialize end time
-	endTime = new Date((new Date()).getTime() + timerStop);
+    timerStop = (timerMin * 60 * millisecondsPerSecond);
+    timerWarn = (Math.ceil(timerMin * 0.10) * 60 * millisecondsPerSecond);
+	endTime = new Date(curr.getTime() + timerStop);
   }
-  remainingTime = endTime.getTime() - (new Date()).getTime();
+  remainingTime = endTime.getTime() - curr.getTime();
   
   // Normalize with timerRes
   var displayTime = Math.round(remainingTime / timerRes) * timerRes;
 
   if ( displayTime < 0 ) {
-    document.getElementById("countdown").className = "stop";
+    document.getElementById("display").className = "stop";
 	displayTime = Math.abs(displayTime);
   } else if ( displayTime <= timerWarn ) {
-    document.getElementById("countdown").className = "warn";
+    document.getElementById("display").className = "warn";
+  } else {
+    document.getElementById("display").className = "normal";
   }
   
   var result = "";
@@ -195,34 +195,100 @@ function updateCountdown()
   if(Math.round(secs) < 10) result += "0";
   if(Math.round(secs) >= 0) result += Math.round(secs) + "";
   
-  document.getElementById("countdown").innerHTML = result;
+  document.getElementById("display").innerHTML = result;
   
+  
+  // Optional different method for formatting (not ready yet)
+  var options = {
+    minute: 'numeric', second: 'numeric', hour12: false
+  };
+  var result2=new Intl.DateTimeFormat('en-US', options).format(displayTime);
+
   // Debugging
-  document.getElementById("countdownstatus").innerHTML = "countdown:" + countdownRunning + " timerStop:"  + timerStop + " timerWarn:"  + timerWarn + " remainingTime:"  + remainingTime + " <br> endTime:"  + endTime;
+  document.getElementById("debugstatus").innerHTML = " countdown:" + countdownRunning + " clock:" + clockRunning + " timerMin:"  + timerMin + " timerStop:"  + timerStop + " timerWarn:"  + timerWarn + " <br> remainingTime:"  + remainingTime + " endTime:"  + endTime.toLocaleTimeString();
 }
 
 
 /* Function to start and stop the timer */
 var countdownRunning=false;
 var countdownInterval=0;
-function toggleCountdown()
+function toggleCountdown() 
 {
-  if (countdownRunning == false) {
-    // Trigger the updateCountdown() to be called every pollInterval time
-    countdownInterval = setInterval('updateCountdown()', pollInterval);
-	countdownRunning = true;
-	
-	// Push end time out by remaining time
-    endTime =  new Date(new Date().getTime() + remainingTime);
-  } else {
-    countdownInterval = clearInterval(countdownInterval);
-	countdownRunning = false;
-	// Save remaining time
-    remainingTime =  endTime.getTime() - new Date().getTime();
+  if (clockRunning == false) 
+  {
+    if (countdownRunning == true) 
+    {
+      // Save remaining time
+      remainingTime =  endTime.getTime() - new Date().getTime();
+	  
+      stopAll();
+    } else {
+      startCountdown();
+    }
   }
 }
 
+var remainingTime = 0;
+function startCountdown()
+{
+  stopAll();
+  
+  // Trigger the updateCountdown() to be called every pollInterval time
+  countdownInterval = setInterval('updateCountdown()', pollInterval);
+  updateCountdown();
+  countdownRunning = true;
+  
+  // Push end time out by remaining time
+  endTime =  new Date(new Date().getTime() + remainingTime);
+}
+function stopCountdown()
+{
+  clearInterval(countdownInterval);
+  countdownRunning = false;
+  // Save remaining time
+  remainingTime =  endTime.getTime() - new Date().getTime();
+}
 
+
+
+function updateClock()
+{
+  var d=new Date();
+  var t=d.toLocaleTimeString();
+  
+ var options = {
+  hour: 'numeric', minute: 'numeric'
+};
+
+var t=new Intl.DateTimeFormat('en-US', options).format(d);
+
+  document.getElementById("display").className = "normal";
+  document.getElementById("display").innerHTML = t;
+  
+  // Debugging
+  document.getElementById("debugstatus").innerHTML = "countdown:" + countdownRunning + " clock:" + clockRunning + " timerMin:"  + timerMin + " timerStop:"  + timerStop + " timerWarn:"  + timerWarn + " <br> remainingTime:"  + remainingTime + " endTime:"  + endTime.toLocaleTimeString();
+
+}
+
+var clockRunning=false;
+var clockInterval=0;
+function startClock()
+{
+  stopAll();
+  
+  // Trigger the updateClock() to be called every pollInterval time
+  clockInterval = setInterval('updateClock()', pollInterval);
+  updateClock();
+  clockRunning = true;
+}
+function stopAll()
+{
+  clearInterval(clockInterval);
+  clockRunning = false;
+  
+  clearInterval(countdownInterval);
+  countdownRunning = false;
+}
 
 
 //-->
@@ -236,11 +302,14 @@ function toggleCountdown()
 <tr>
 <th>
 
-<p class="green"><br></p>
-<p class="green" id="countdown" onclick="toggleCountdown()">start</p>
-<a class="setMin" id="set20m" onclick="setTimerMin(40)"> 40m </a> 
-<a class="setMin" id="set50m" onclick="setTimerMin(50)"> 50m </a> 
-<p class="debug" id="countdownstatus">countdown status</p>
+<p class="header"><br></p>
+<p class="normal" id="display" onclick="toggleCountdown()">start</p>
+<a class="hiddenButton" id="set1m" onclick="setTimerMin(1)"> 1m </a> 
+<a class="hiddenButton" id="set10m" onclick="setTimerMin(10)"> 10m </a> 
+<a class="hiddenButton" id="set40m" onclick="setTimerMin(40)"> 40m </a> 
+<a class="hiddenButton" id="set45m" onclick="setTimerMin(45)"> 45m </a> 
+<a class="hiddenButton" id="displayClock" onclick="startClock()"> clock </a> 
+<p class="debug" id="debugstatus">debug status</p>
 <!--
 -->
 
@@ -249,4 +318,3 @@ function toggleCountdown()
 </table>
 </body>
 </html>
-
